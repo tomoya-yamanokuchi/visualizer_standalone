@@ -51,6 +51,8 @@ def _render_cutting_process_serial(
     action_table: dict[int, dict[str, int | str]],
     sample_images: np.ndarray,
     save_eps: bool,
+    save_png: bool,
+    save_pdf: bool,
     progress_desc: str,
 ) -> list[Image.Image]:
     frames: list[Image.Image] = []
@@ -73,6 +75,8 @@ def _render_cutting_process_serial(
             action_table=action_table,
             save_path=save_path,
             save_eps=save_eps,
+            save_png=save_png,
+            save_pdf=save_pdf,
         )
         frames.append(frame)
 
@@ -88,6 +92,8 @@ def _render_cutting_process_ray(
     sample_images: np.ndarray,
     max_in_flight: int,
     save_eps: bool,
+    save_png: bool,
+    save_pdf: bool,
     progress_desc: str,
 ) -> list[Image.Image]:
     try:
@@ -129,6 +135,8 @@ def _render_cutting_process_ray(
                     action_table=action_table_ref,
                     save_path=save_path_ref,
                     save_eps=save_eps,
+                    save_png=save_png,
+                    save_pdf=save_pdf,
                 )
                 for k in range(start, end)
             ]
@@ -152,6 +160,8 @@ def render_cutting_process_gif(
     use_ray: bool = False,
     max_in_flight: Optional[int] = None,
     save_eps: bool = False,
+    save_png: bool = False,
+    save_pdf: bool = False,
     gif_duration_ms: int = 500,
 ) -> Path:
     """Render a cutting process as a GIF."""
@@ -180,6 +190,8 @@ def render_cutting_process_gif(
             sample_images=sample_images,
             max_in_flight=max_in_flight_value,
             save_eps=save_eps,
+            save_png=save_png,
+            save_pdf=save_pdf,
             progress_desc=progress_desc,
         )
     else:
@@ -190,6 +202,8 @@ def render_cutting_process_gif(
             action_table=action_table,
             sample_images=sample_images,
             save_eps=save_eps,
+            save_png=save_png,
+            save_pdf=save_pdf,
             progress_desc=progress_desc,
         )
 
