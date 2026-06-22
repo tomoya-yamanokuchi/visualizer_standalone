@@ -10,10 +10,29 @@
 
 # Evaluation result root directory.
 # If tags is non-empty, the script reads root_folder / tag for each tag.
-root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_B
+# --------------------------------
 
+# << --- Object ABC --- >>
+
+# +++ conditional_diffusion +++
+# root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_A_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_A
+# root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_B
+# root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_C
+
+
+# +++ vaeac +++
+# root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/EncoderDecoderNet_D64_H32_Z50_E100000_simple_2d_20260605_140804/simple_paper_T8_N6_vaeac_eta0p5_D0_M32_E100000_vaeac_ABC
+
+# +++ pcddm +++
+root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/pointnet1d_D64_T1000_S20_simple_1d_20260605_110050/simple_paper_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_pcddm_ABC
+
+# +++ gound truth +++
+# root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_ABC_GT
+
+# --------------------------------
 tags:
   - epsilon_greedy_00
+  # - oracle_obs
 
 # Output naming.
 save_prefix: no_axis_w_cutting_plane3
