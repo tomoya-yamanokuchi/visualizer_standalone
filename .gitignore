@@ -1,0 +1,74 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Local configs and environment variables
+.env
+.env.*
+config.local.yaml
+config.local.yml
+local_config.yaml
+local_config.yml
+
+# Large or generated evaluation data
+# Keep rollout/evaluation datasets outside the repository when possible.
+data/
+dataset/
+datasets/
+eval_results/
+outputs/
+results/
+
+# Rendered artifacts
+*.gif
+*.mp4
+*.avi
+*.mov
+*.eps
+screenshot_*.png
+screenshot_*.eps
+last_remain_voxels.png
+last_remain_voxels_w_ocv_masked.png
+3d_cutting_process/
+
+# Pickle / NumPy binary data generated during experiments
+*.pickle
+*.pkl
+*.npy
+*.npz
+
+# Ray runtime files
+ray_results/
+/tmp/ray/
