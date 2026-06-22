@@ -15,4 +15,4 @@ pyvista>=0.40
 vtk>=9.2
 
 # Optional parallel rendering:
-# ray>=2.0
+ray>=2.0

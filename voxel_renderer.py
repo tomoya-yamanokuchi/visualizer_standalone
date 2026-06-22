@@ -51,10 +51,20 @@ def _render_cutting_process_serial(
     action_table: dict[int, dict[str, int | str]],
     sample_images: np.ndarray,
     save_eps: bool,
+    progress_desc: str,
 ) -> list[Image.Image]:
     frames: list[Image.Image] = []
 
-    for k in tqdm(range(sample_images.shape[0]), desc="render frames", leave=False):
+    frame_iter = tqdm(
+        range(sample_images.shape[0]),
+        desc=progress_desc,
+        unit="frame",
+        leave=True,
+        dynamic_ncols=True,
+    )
+
+    for k in frame_iter:
+        frame_iter.set_postfix_str(f"frame={k}")
         frame = one_step_voxel_render_for_cutting_process_local(
             k=k,
             grid_config=grid_config,
@@ -78,6 +88,7 @@ def _render_cutting_process_ray(
     sample_images: np.ndarray,
     max_in_flight: int,
     save_eps: bool,
+    progress_desc: str,
 ) -> list[Image.Image]:
     try:
         import ray
@@ -98,21 +109,34 @@ def _render_cutting_process_ray(
     length = sample_images.shape[0]
     frames: list[Image.Image] = []
 
-    for start in tqdm(range(0, length, max_in_flight), desc="render frame batches", leave=False):
-        end = min(start + max_in_flight, length)
-        result_refs = [
-            remote_render_one_frame.remote(
-                k=k,
-                grid_config=grid_config_ref,
-                sample_images=sample_images_ref,
-                action=action_ref,
-                action_table=action_table_ref,
-                save_path=save_path_ref,
-                save_eps=save_eps,
-            )
-            for k in range(start, end)
-        ]
-        frames.extend(ray.get(result_refs))
+    progress = tqdm(
+        total=length,
+        desc=progress_desc,
+        unit="frame",
+        leave=True,
+        dynamic_ncols=True,
+    )
+
+    try:
+        for start in range(0, length, max_in_flight):
+            end = min(start + max_in_flight, length)
+            result_refs = [
+                remote_render_one_frame.remote(
+                    k=k,
+                    grid_config=grid_config_ref,
+                    sample_images=sample_images_ref,
+                    action=action_ref,
+                    action_table=action_table_ref,
+                    save_path=save_path_ref,
+                    save_eps=save_eps,
+                )
+                for k in range(start, end)
+            ]
+            frames.extend(ray.get(result_refs))
+            progress.update(end - start)
+            progress.set_postfix_str(f"frames={end}/{length}")
+    finally:
+        progress.close()
 
     return frames
 
@@ -130,31 +154,7 @@ def render_cutting_process_gif(
     save_eps: bool = False,
     gif_duration_ms: int = 500,
 ) -> Path:
-    """Render a cutting process as a GIF.
-
-    This function is the standalone replacement for
-    ``pv_voxel_render_parallel.render_cutting_process_v3`` from the original
-    repository. It keeps Ray optional so that the visualizer can run in a small
-    local environment with only PyVista/VTK installed.
-
-    Args:
-        save_path: Directory used for optional per-frame files.
-        grid_config: Voxel grid config with ``bounds`` and ``side_length``.
-        action: Action index for each rendered frame.
-        action_table: Mapping from action index to ``{"axis": ..., "loc": ...}``.
-        sample_images: Frame array shaped ``(T, H, W, 3)``. Values may be either
-            in 0-255 or already normalized; the worker follows the original
-            behavior and divides by 255.
-        save_tag: Suffix used in the output GIF filename.
-        use_ray: If true, render frame batches with Ray.
-        max_in_flight: Maximum number of Ray tasks submitted at once.
-        save_eps: Save per-frame EPS files in addition to the GIF. This is often
-            fragile in headless Docker environments, so the default is false.
-        gif_duration_ms: GIF frame duration in milliseconds.
-
-    Returns:
-        Path to the generated GIF.
-    """
+    """Render a cutting process as a GIF."""
     save_path = Path(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -169,6 +169,8 @@ def render_cutting_process_gif(
             f"action length must be >= number of frames: action={action.shape[0]}, frames={length}"
         )
 
+    progress_desc = f"render frames {save_tag}"
+
     if use_ray:
         frames = _render_cutting_process_ray(
             save_path=save_path,
@@ -178,6 +180,7 @@ def render_cutting_process_gif(
             sample_images=sample_images,
             max_in_flight=max_in_flight_value,
             save_eps=save_eps,
+            progress_desc=progress_desc,
         )
     else:
         frames = _render_cutting_process_serial(
@@ -187,9 +190,11 @@ def render_cutting_process_gif(
             action_table=action_table,
             sample_images=sample_images,
             save_eps=save_eps,
+            progress_desc=progress_desc,
         )
 
     output_path = save_path.parent / f"cutting_process_{save_tag}.gif"
+    print(f"saving GIF: {output_path}")
     _save_gif(frames, output_path, duration_ms=gif_duration_ms)
     print(f"save_gif: {output_path}")
     return output_path

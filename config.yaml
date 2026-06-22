@@ -10,7 +10,7 @@
 
 # Evaluation result root directory.
 # If tags is non-empty, the script reads root_folder / tag for each tag.
-root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_A_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_A
+root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_B
 
 tags:
   - epsilon_greedy_00
@@ -47,10 +47,10 @@ paper_frame_interleave: true
 renderer:
   # Recommended default for local debugging and stable rendering.
   # PyVista/VTK rendering can be fragile when Ray is used in Docker.
-  use_ray: false
+  use_ray: true
 
   # Used only when use_ray: true.
   max_in_flight: 1
 
   # EPS export is often fragile in headless Docker environments.
-  save_eps: false
+  save_eps: true
