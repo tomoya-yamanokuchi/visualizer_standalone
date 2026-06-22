@@ -144,6 +144,31 @@ def _configure_camera(plotter: pv.Plotter, grid_config: dict[str, Any]) -> None:
     plotter.camera.up = (0.0, 0.0, 1.0)
 
 
+def _save_vector_graphics(
+    *,
+    plotter: pv.Plotter,
+    save_path: Path,
+    frame_index: int,
+    save_eps: bool,
+    save_pdf: bool,
+) -> None:
+    """Save optional vector-like frame exports.
+
+    PyVista uses VTK/GL2PS for these formats. PDF is usually easier to handle
+    than EPS in PowerPoint, but both can still depend on the local VTK build.
+    """
+    if not (save_eps or save_pdf):
+        return
+
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    if save_eps:
+        plotter.save_graphic(str(save_path / f"screenshot_{frame_index}.eps"))
+
+    if save_pdf:
+        plotter.save_graphic(str(save_path / f"screenshot_{frame_index}.pdf"))
+
+
 def one_step_voxel_render_for_cutting_process_local(
     *,
     k: int,
@@ -153,19 +178,23 @@ def one_step_voxel_render_for_cutting_process_local(
     action_table: dict[int, dict[str, int | str]],
     save_path: str | Path,
     save_eps: bool = False,
+    save_png: bool = False,
+    save_pdf: bool = False,
 ) -> Image.Image:
     """Render one cutting-process frame.
 
     This is the standalone version of the original PyVista worker. It returns a
-    PIL image so the caller can compose all frames into a GIF. ``save_eps`` is
-    optional because EPS export is fragile in Docker/headless environments.
+    PIL image so the caller can compose all frames into a GIF. Optional EPS/PDF
+    exports use ``plotter.save_graphic``. Optional PNG export uses the rendered
+    screenshot image and is the recommended format for PowerPoint.
     """
     save_path = Path(save_path)
     bounds = tuple(float(v) for v in grid_config["bounds"])
 
     tmp_mesh = pv.Box(bounds=bounds)
 
-    action_idx = int(action[int(k)])
+    frame_index = int(k)
+    action_idx = int(action[frame_index])
     cutting_plane = _make_cutting_plane(
         grid_config=grid_config,
         action_idx=action_idx,
@@ -181,7 +210,7 @@ def one_step_voxel_render_for_cutting_process_local(
     plotter = pv.Plotter(window_size=(800, 800), off_screen=True)
 
     try:
-        step_image = sample_images[int(k)] / 255.0
+        step_image = sample_images[frame_index] / 255.0
         step_image = np.clip(step_image, 0.0, 1.0)
         updated_colors = box_array_handler.cast_2d_image_to_box_color(
             image=step_image,
@@ -201,7 +230,7 @@ def one_step_voxel_render_for_cutting_process_local(
             opacity=1e-10,
         )
 
-        if int(k) % 2 == 0:
+        if frame_index % 2 == 0:
             plotter.add_mesh(
                 cutting_plane,
                 color=(226 / 255.0, 220 / 255.0, 222 / 255.0),
@@ -219,11 +248,21 @@ def one_step_voxel_render_for_cutting_process_local(
 
         _configure_camera(plotter, grid_config)
 
-        if save_eps:
-            save_path.mkdir(parents=True, exist_ok=True)
-            plotter.save_graphic(str(save_path / f"screenshot_{int(k)}.eps"))
+        _save_vector_graphics(
+            plotter=plotter,
+            save_path=save_path,
+            frame_index=frame_index,
+            save_eps=save_eps,
+            save_pdf=save_pdf,
+        )
 
         image = plotter.screenshot()
-        return Image.fromarray(np.asarray(image))
+        pil_image = Image.fromarray(np.asarray(image))
+
+        if save_png:
+            save_path.mkdir(parents=True, exist_ok=True)
+            pil_image.save(save_path / f"screenshot_{frame_index}.png")
+
+        return pil_image
     finally:
         plotter.close()
