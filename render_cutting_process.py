@@ -51,6 +51,8 @@ DEFAULT_CONFIG = {
         "use_ray": False,
         "max_in_flight": 1,
         "save_eps": False,
+        "save_png": False,
+        "save_pdf": False,
     },
 }
 
@@ -296,6 +298,8 @@ def render_episode(
         use_ray=bool(renderer_cfg.get("use_ray", False)),
         max_in_flight=renderer_cfg.get("max_in_flight", None),
         save_eps=bool(renderer_cfg.get("save_eps", False)),
+        save_png=bool(renderer_cfg.get("save_png", False)),
+        save_pdf=bool(renderer_cfg.get("save_pdf", False)),
     )
 
     elapsed = perf_counter() - start_time
@@ -365,6 +369,10 @@ def apply_cli_overrides(cfg: dict[str, Any], args: argparse.Namespace) -> dict[s
         renderer_cfg["max_in_flight"] = args.max_in_flight
     if args.save_eps is not None:
         renderer_cfg["save_eps"] = args.save_eps
+    if args.save_png is not None:
+        renderer_cfg["save_png"] = args.save_png
+    if args.save_pdf is not None:
+        renderer_cfg["save_pdf"] = args.save_pdf
 
     return cfg
 
@@ -393,6 +401,16 @@ def parse_args() -> argparse.Namespace:
     eps_group.add_argument("--save-eps", dest="save_eps", action="store_true")
     eps_group.add_argument("--no-save-eps", dest="save_eps", action="store_false")
     parser.set_defaults(save_eps=None)
+
+    png_group = parser.add_mutually_exclusive_group()
+    png_group.add_argument("--save-png", dest="save_png", action="store_true")
+    png_group.add_argument("--no-save-png", dest="save_png", action="store_false")
+    parser.set_defaults(save_png=None)
+
+    pdf_group = parser.add_mutually_exclusive_group()
+    pdf_group.add_argument("--save-pdf", dest="save_pdf", action="store_true")
+    pdf_group.add_argument("--no-save-pdf", dest="save_pdf", action="store_false")
+    parser.set_defaults(save_pdf=None)
 
     interleave_group = parser.add_mutually_exclusive_group()
     interleave_group.add_argument("--paper-frame-interleave", dest="paper_frame_interleave", action="store_true")
