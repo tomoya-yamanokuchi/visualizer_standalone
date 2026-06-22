@@ -1,0 +1,56 @@
+# Standalone cutting-process visualizer config.
+#
+# Usage:
+#   cd denoising_diffusion_pytorch/visualizer_standalone
+#   python3 render_cutting_process.py --config config.yaml --no-ray --no-save-eps
+#
+# This visualizer does not load diffusion models. It reads saved rollout data:
+#   root_folder/tags/model_type/episode_x/rollout_data.pickle
+#   root_folder/tags/model_type/episode_x/oracle_obs_cast_z_axis0.png
+
+# Evaluation result root directory.
+# If tags is non-empty, the script reads root_folder / tag for each tag.
+root_folder: /home/dev/workspace/dataset/nedo_dismantling_log/eval/unet_D64_T1000_S20_simple_2d_20260605_133339/simple_paper_A_T8_N6_eta0p5_D0_w0p2_M32_S20_E100000_proposed_A
+
+tags:
+  - epsilon_greedy_00
+
+# Output naming.
+save_prefix: no_axis_w_cutting_plane3
+save_subdir: 3d_cutting_process
+
+# Input filenames inside each episode directory.
+rollout_filename: rollout_data.pickle
+oracle_obs_filename: oracle_obs_cast_z_axis0.png
+
+# The 2D map size and the 3D voxel grid side length.
+# For the simple setup, 64 x 64 maps correspond to a 16 x 16 x 16 voxel grid.
+dim_2d: 64
+dim_3d: 16
+
+# Voxel grid bounds: [xmin, xmax, ymin, ymax, zmin, zmax]
+bounds: [-0.05, 0.05, -0.05, 0.05, -0.05, 0.05]
+
+# Target selection.
+# null means all model-type folders / first max_episodes episodes.
+model_type_indices: null
+episode_indices: null
+max_episodes: 1
+
+# Match the original paper-style frame duplication:
+# - prepend an empty frame
+# - duplicate each frame
+# - roll action indices by one
+# - append the final frame once
+paper_frame_interleave: true
+
+renderer:
+  # Recommended default for local debugging and stable rendering.
+  # PyVista/VTK rendering can be fragile when Ray is used in Docker.
+  use_ray: false
+
+  # Used only when use_ray: true.
+  max_in_flight: 1
+
+  # EPS export is often fragile in headless Docker environments.
+  save_eps: false

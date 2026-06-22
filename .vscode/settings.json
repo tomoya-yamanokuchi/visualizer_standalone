@@ -1,0 +1,15 @@
+{
+    "editor.fontFamily"               : "Ubuntu Mono",
+    "editor.tabSize"                  : 4,
+    "window.zoomLevel"                : 3,
+    "editor.fontSize"                 : 16,
+    "debug.console.fontSize"          : 16,
+    "terminal.integrated.fontSize"    : 16,
+    "workbench.tree.indent"           : 25, // exploreに表示されるファイル一覧のインデント幅
+    "editor.insertSpaces"             : true,
+
+    "files.exclude": {
+        "blender-4.0.2-linux-x64": true,
+        "dataset": true,
+    }
+  }
