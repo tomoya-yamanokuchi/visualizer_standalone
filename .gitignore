@@ -59,6 +59,7 @@ results/
 *.eps
 screenshot_*.png
 screenshot_*.eps
+screenshot_*.pdf
 last_remain_voxels.png
 last_remain_voxels_w_ocv_masked.png
 3d_cutting_process/
