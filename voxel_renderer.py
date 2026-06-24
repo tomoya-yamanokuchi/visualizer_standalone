@@ -63,11 +63,21 @@ def _save_mp4(
     duration_ms: int = 500,
     quality: int = 8,
 ) -> None:
-    """Save PIL frames as an MP4 using imageio/ffmpeg.
+    """Save PIL frames as a PowerPoint-compatible MP4 using imageio/ffmpeg.
 
     The renderer produces a small number of semantic frames. To preserve the same
     timing as GIF output, each frame is repeated for duration_ms at the requested
     fps.
+
+    PowerPoint for Mac can be picky about MP4 metadata and pixel format. The
+    writer settings below mirror the manual ffmpeg compatibility pass that was
+    previously used after rendering:
+      - H.264 via libx264
+      - yuv420p pixel format
+      - avc1 codec tag
+      - main profile / level 4.0
+      - faststart moov atom placement
+      - no audio stream
     """
     if not frames:
         raise ValueError("frames is empty; cannot save MP4")
@@ -89,8 +99,19 @@ def _save_mp4(
         fps=fps,
         codec="libx264",
         quality=int(quality),
-        macro_block_size=1,
+        macro_block_size=16,
         pixelformat="yuv420p",
+        output_params=[
+            "-profile:v",
+            "main",
+            "-level",
+            "4.0",
+            "-tag:v",
+            "avc1",
+            "-movflags",
+            "+faststart",
+            "-an",
+        ],
     ) as writer:
         for frame in frames:
             frame_array = _pil_to_rgb_array(frame)
