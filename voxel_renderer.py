@@ -43,6 +43,61 @@ def _save_gif(
     )
 
 
+def _pil_to_rgb_array(frame: Image.Image) -> np.ndarray:
+    """Convert a PIL image to an RGB uint8 array for MP4 encoding."""
+    if frame.mode == "RGB":
+        return np.asarray(frame)
+
+    # Composite transparency over black if an RGBA frame is ever returned.
+    rgba = frame.convert("RGBA")
+    background = Image.new("RGBA", rgba.size, (0, 0, 0, 255))
+    composed = Image.alpha_composite(background, rgba)
+    return np.asarray(composed.convert("RGB"))
+
+
+def _save_mp4(
+    frames: list[Image.Image],
+    output_path: Path,
+    *,
+    fps: int = 30,
+    duration_ms: int = 500,
+    quality: int = 8,
+) -> None:
+    """Save PIL frames as an MP4 using imageio/ffmpeg.
+
+    The renderer produces a small number of semantic frames. To preserve the same
+    timing as GIF output, each frame is repeated for duration_ms at the requested
+    fps.
+    """
+    if not frames:
+        raise ValueError("frames is empty; cannot save MP4")
+
+    try:
+        import imageio.v2 as imageio
+    except ImportError as exc:  # pragma: no cover - dependency guard.
+        raise RuntimeError(
+            "MP4 export requires imageio with ffmpeg support. Install with: "
+            "pip install 'imageio[ffmpeg]'"
+        ) from exc
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fps = int(fps)
+    repeat_count = max(1, int(round((float(duration_ms) / 1000.0) * fps)))
+
+    with imageio.get_writer(
+        str(output_path),
+        fps=fps,
+        codec="libx264",
+        quality=int(quality),
+        macro_block_size=1,
+        pixelformat="yuv420p",
+    ) as writer:
+        for frame in frames:
+            frame_array = _pil_to_rgb_array(frame)
+            for _ in range(repeat_count):
+                writer.append_data(frame_array)
+
+
 def _render_cutting_process_serial(
     *,
     save_path: Path,
@@ -162,9 +217,17 @@ def render_cutting_process_gif(
     save_eps: bool = False,
     save_png: bool = False,
     save_pdf: bool = False,
+    save_gif: bool = True,
+    save_mp4: bool = False,
     gif_duration_ms: int = 500,
-) -> Path:
-    """Render a cutting process as a GIF."""
+    mp4_fps: int = 30,
+    mp4_quality: int = 8,
+) -> dict[str, Path]:
+    """Render a cutting process and save requested video formats.
+
+    The historical function name is kept for backward compatibility. It can now
+    save GIF, MP4, or both from the same rendered frames.
+    """
     save_path = Path(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -207,8 +270,29 @@ def render_cutting_process_gif(
             progress_desc=progress_desc,
         )
 
-    output_path = save_path.parent / f"cutting_process_{save_tag}.gif"
-    print(f"saving GIF: {output_path}")
-    _save_gif(frames, output_path, duration_ms=gif_duration_ms)
-    print(f"save_gif: {output_path}")
-    return output_path
+    output_paths: dict[str, Path] = {}
+
+    if save_gif:
+        output_path = save_path.parent / f"cutting_process_{save_tag}.gif"
+        print(f"saving GIF: {output_path}")
+        _save_gif(frames, output_path, duration_ms=gif_duration_ms)
+        print(f"save_gif: {output_path}")
+        output_paths["gif"] = output_path
+
+    if save_mp4:
+        output_path = save_path.parent / f"cutting_process_{save_tag}.mp4"
+        print(f"saving MP4: {output_path}")
+        _save_mp4(
+            frames,
+            output_path,
+            fps=mp4_fps,
+            duration_ms=gif_duration_ms,
+            quality=mp4_quality,
+        )
+        print(f"save_mp4: {output_path}")
+        output_paths["mp4"] = output_path
+
+    if not output_paths:
+        print("No GIF/MP4 output requested; rendered frames were only saved via save_png/save_eps/save_pdf options.")
+
+    return output_paths
