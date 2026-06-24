@@ -78,7 +78,7 @@ renderer:
   save_eps: false
 
   # PNG is recommended for slide editing and debugging individual frames.
-  save_png: true
+  save_png: false
 
   # PDF export uses PyVista/VTK vector export. It is often easier to handle than EPS,
   # but may still depend on the local VTK/OpenGL environment.
@@ -87,8 +87,8 @@ renderer:
   # Video outputs.
   # GIF is kept for backward compatibility.
   # MP4 is recommended for PowerPoint because playback is smoother and colors are stable.
-  save_gif: true
-  save_mp4: false
+  save_gif: false
+  save_mp4: true
 
   # Timing and quality.
   # gif_duration_ms is also used as the per-frame semantic duration for MP4.
