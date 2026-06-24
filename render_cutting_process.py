@@ -19,7 +19,7 @@ try:
         numpy_to_pil,
         save_numpy_image,
     )
-    from .voxel_renderer import render_cutting_process_gif
+    from .voxel_renderer import render_cutting_process_gif, render_cutting_process_mp4_from_png
 except ImportError:  # pragma: no cover - allows running this file directly.
     from action_table import build_action_table
     from io_utils import (
@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - allows running this file directly.
         numpy_to_pil,
         save_numpy_image,
     )
-    from voxel_renderer import render_cutting_process_gif
+    from voxel_renderer import render_cutting_process_gif, render_cutting_process_mp4_from_png
 
 
 DEFAULT_CONFIG = {
@@ -59,6 +59,7 @@ DEFAULT_CONFIG = {
         "mp4_fps": 30,
         "mp4_quality": 8,
         "fast_bounds_anchor": False,
+        "mp4_from_png": False,
     },
 }
 
@@ -246,6 +247,22 @@ def render_episode(
     save_folder = data_folder / str(cfg["save_subdir"])
     ensure_dir(save_folder)
 
+    renderer_cfg = cfg.get("renderer", {}) or {}
+    start_time = perf_counter()
+
+    if bool(renderer_cfg.get("mp4_from_png", False)):
+        print(f"load_png_frames: {save_folder}")
+        render_cutting_process_mp4_from_png(
+            image_folder=save_folder,
+            save_tag=save_name,
+            gif_duration_ms=int(renderer_cfg.get("gif_duration_ms", 500)),
+            mp4_fps=int(renderer_cfg.get("mp4_fps", 30)),
+            mp4_quality=int(renderer_cfg.get("mp4_quality", 8)),
+        )
+        elapsed = perf_counter() - start_time
+        print(f"[mp4-from-png] {data_folder} finished in {elapsed:.2f} sec")
+        return
+
     rollout_path = data_folder / str(cfg["rollout_filename"])
     oracle_obs_path = data_folder / str(cfg["oracle_obs_filename"])
 
@@ -290,9 +307,6 @@ def render_episode(
         cutting_process_2d_map_flip[-1] / 255.0,
         data_folder / "last_remain_voxels_w_ocv_masked.png",
     )
-
-    renderer_cfg = cfg.get("renderer", {}) or {}
-    start_time = perf_counter()
 
     render_cutting_process_gif(
         save_path=save_folder,
@@ -397,6 +411,8 @@ def apply_cli_overrides(cfg: dict[str, Any], args: argparse.Namespace) -> dict[s
         renderer_cfg["mp4_quality"] = args.mp4_quality
     if args.fast_bounds_anchor is not None:
         renderer_cfg["fast_bounds_anchor"] = args.fast_bounds_anchor
+    if args.mp4_from_png is not None:
+        renderer_cfg["mp4_from_png"] = args.mp4_from_png
 
     return cfg
 
@@ -448,6 +464,16 @@ def parse_args() -> argparse.Namespace:
     mp4_group.add_argument("--save-mp4", dest="save_mp4", action="store_true")
     mp4_group.add_argument("--no-save-mp4", dest="save_mp4", action="store_false")
     parser.set_defaults(save_mp4=None)
+
+    mp4_from_png_group = parser.add_mutually_exclusive_group()
+    mp4_from_png_group.add_argument(
+        "--mp4-from-png",
+        dest="mp4_from_png",
+        action="store_true",
+        help="Skip PyVista rendering and build MP4 directly from existing screenshot_*.png files.",
+    )
+    mp4_from_png_group.add_argument("--no-mp4-from-png", dest="mp4_from_png", action="store_false")
+    parser.set_defaults(mp4_from_png=None)
 
     fast_group = parser.add_mutually_exclusive_group()
     fast_group.add_argument(
