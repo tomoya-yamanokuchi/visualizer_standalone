@@ -7,6 +7,9 @@
 # MP4 output for PowerPoint:
 #   python3 render_cutting_process.py --config config.yaml --no-ray --save-mp4 --no-save-gif
 #
+# Faster MP4 output with opt-in bounds-anchor optimization:
+#   python3 render_cutting_process.py --config config.yaml --no-ray --save-mp4 --no-save-gif --fast-bounds-anchor
+#
 # This visualizer does not load diffusion models. It reads saved rollout data:
 #   root_folder/tags/model_type/episode_x/rollout_data.pickle
 #   root_folder/tags/model_type/episode_x/oracle_obs_cast_z_axis0.png
@@ -95,3 +98,8 @@ renderer:
   gif_duration_ms: 500
   mp4_fps: 30
   mp4_quality: 8
+
+  # Optional speed-up.
+  # false keeps the historical behavior: one invisible anchor mesh per voxel.
+  # true uses one invisible bounding box instead. Visible voxels are drawn unchanged.
+  fast_bounds_anchor: false
