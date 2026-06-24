@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -117,6 +118,51 @@ def _save_mp4(
             frame_array = _pil_to_rgb_array(frame)
             for _ in range(repeat_count):
                 writer.append_data(frame_array)
+
+
+def _png_frame_index(path: Path) -> int:
+    match = re.search(r"screenshot_(\d+)\.png$", path.name)
+    if not match:
+        raise ValueError(f"unexpected PNG frame name: {path.name}")
+    return int(match.group(1))
+
+
+def _load_png_frames(image_folder: Path) -> list[Image.Image]:
+    frame_paths = sorted(image_folder.glob("screenshot_*.png"), key=_png_frame_index)
+    if not frame_paths:
+        raise FileNotFoundError(f"no screenshot_*.png frames found in: {image_folder}")
+
+    frames: list[Image.Image] = []
+    for frame_path in tqdm(frame_paths, desc=f"load PNG frames {image_folder.name}", unit="frame"):
+        with Image.open(frame_path) as img:
+            frames.append(img.convert("RGB").copy())
+
+    return frames
+
+
+def render_cutting_process_mp4_from_png(
+    *,
+    image_folder: str | Path,
+    save_tag: str,
+    gif_duration_ms: int = 500,
+    mp4_fps: int = 30,
+    mp4_quality: int = 8,
+) -> Path:
+    """Generate a PowerPoint-compatible MP4 from pre-rendered screenshot PNGs."""
+    image_folder = Path(image_folder)
+    frames = _load_png_frames(image_folder)
+
+    output_path = image_folder.parent / f"cutting_process_{save_tag}.mp4"
+    print(f"saving MP4 from PNG frames: {output_path}")
+    _save_mp4(
+        frames,
+        output_path,
+        fps=mp4_fps,
+        duration_ms=gif_duration_ms,
+        quality=mp4_quality,
+    )
+    print(f"save_mp4_from_png: {output_path}")
+    return output_path
 
 
 def _render_cutting_process_serial(
