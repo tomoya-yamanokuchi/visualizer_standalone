@@ -78,13 +78,37 @@ def _make_cutting_plane(
     return get_rotated_mesh(translated, cutting_plane_rotation)
 
 
+def _add_camera_bounds_anchor(plotter: pv.Plotter, bounds: tuple[float, ...]) -> None:
+    """Add one invisible mesh actor to stabilize camera bounds."""
+    plotter.add_mesh(
+        pv.Box(bounds=bounds),
+        color=[0.0, 0.0, 0.0],
+        opacity=1e-10,
+        show_edges=False,
+    )
+
+
 def _add_voxel_meshes(
     *,
     plotter: pv.Plotter,
     nearby_cells: dict[str, pv.DataSet],
     updated_colors: np.ndarray,
+    fast_bounds_anchor: bool,
 ) -> None:
-    """Add voxel cubes to a PyVista plotter using the original visual style."""
+    """Add voxel cubes to a PyVista plotter using the original visual style.
+
+    When fast_bounds_anchor=False, the historical behavior is preserved: every
+    voxel cell gets one almost invisible mesh actor for camera-bound stability.
+    This is safe but slow.
+
+    When fast_bounds_anchor=True, visible voxels are unchanged, but the invisible
+    per-cell anchor actors are skipped. Camera bounds should be stabilized by one
+    global invisible bounding box instead.
+    """
+    black_lower = np.asarray([0.0, 0.0, 0.0])
+    black_upper = np.asarray([0.5, 0.5, 0.5])
+    gray_upper = np.asarray([1.3, 1.3, 1.3])
+
     for elements in nearby_cells:
         voxel_idx = int(elements)
         color = updated_colors[voxel_idx]
@@ -94,14 +118,10 @@ def _add_voxel_meshes(
         # - Near-black voxels are treated as removed and are not visibly rendered.
         # - White/gray voxels are drawn as faint context.
         # - Colored voxels are drawn as solid remaining material.
-        if np.all(color >= np.asarray([0.0, 0.0, 0.0])) and np.all(
-            color < np.asarray([0.5, 0.5, 0.5])
-        ):
+        if np.all(color >= black_lower) and np.all(color < black_upper):
             pass
         else:
-            if np.all(color >= np.asarray([0.5, 0.5, 0.5])) and np.all(
-                color < np.asarray([1.3, 1.3, 1.3])
-            ):
+            if np.all(color >= black_upper) and np.all(color < gray_upper):
                 plotter.add_mesh(
                     cell,
                     style="wireframe",
@@ -124,20 +144,26 @@ def _add_voxel_meshes(
                     show_edges=True,
                 )
 
-        # Add an almost invisible mesh for each cell to keep the camera bounds stable.
-        plotter.add_mesh(
-            cell,
-            color=color,
-            opacity=1e-10,
-            show_edges=True,
-        )
+        if not fast_bounds_anchor:
+            # Historical camera-bound anchor. Almost invisible, but expensive
+            # because it adds one actor per voxel.
+            plotter.add_mesh(
+                cell,
+                color=color,
+                opacity=1e-10,
+                show_edges=True,
+            )
 
 
 def _configure_camera(plotter: pv.Plotter, grid_config: dict[str, Any]) -> None:
     bounds = tuple(float(v) for v in grid_config["bounds"])
-    cube = pv.Cube(center=(bounds[0], bounds[0], bounds[0]))
+    center = (
+        (bounds[0] + bounds[1]) / 2.0,
+        (bounds[2] + bounds[3]) / 2.0,
+        (bounds[4] + bounds[5]) / 2.0,
+    )
 
-    plotter.set_focus(cube.center)
+    plotter.set_focus(center)
     plotter.camera.parallel_projection = True
     plotter.camera.parallel_scale = 0.1
     plotter.camera.position = (0.3, 0.55, 0.3)
@@ -180,13 +206,14 @@ def one_step_voxel_render_for_cutting_process_local(
     save_eps: bool = False,
     save_png: bool = False,
     save_pdf: bool = False,
+    fast_bounds_anchor: bool = False,
 ) -> Image.Image:
     """Render one cutting-process frame.
 
     This is the standalone version of the original PyVista worker. It returns a
-    PIL image so the caller can compose all frames into a GIF. Optional EPS/PDF
+    PIL image so the caller can compose all frames into GIF/MP4. Optional EPS/PDF
     exports use ``plotter.save_graphic``. Optional PNG export uses the rendered
-    screenshot image and is the recommended format for PowerPoint.
+    screenshot image and is useful for debugging individual frames.
     """
     save_path = Path(save_path)
     bounds = tuple(float(v) for v in grid_config["bounds"])
@@ -205,7 +232,6 @@ def one_step_voxel_render_for_cutting_process_local(
     _ = box_array_handler.cast_mesh_to_box_array(mesh=tmp_mesh.copy())
     box_arrays_data = box_array_handler.get_box_array_data()
     nearby_cells = box_arrays_data.boxes
-    centers = box_arrays_data.grid_centers
 
     plotter = pv.Plotter(window_size=(800, 800), off_screen=True)
 
@@ -217,17 +243,14 @@ def one_step_voxel_render_for_cutting_process_local(
             permute="z",
         )
 
+        if fast_bounds_anchor:
+            _add_camera_bounds_anchor(plotter, bounds)
+
         _add_voxel_meshes(
             plotter=plotter,
             nearby_cells=nearby_cells,
             updated_colors=updated_colors,
-        )
-
-        plotter.add_points(
-            centers,
-            render_points_as_spheres=True,
-            color=[0, 0, 0],
-            opacity=1e-10,
+            fast_bounds_anchor=fast_bounds_anchor,
         )
 
         if frame_index % 2 == 0:
