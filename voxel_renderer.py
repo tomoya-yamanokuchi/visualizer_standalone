@@ -108,6 +108,7 @@ def _render_cutting_process_serial(
     save_eps: bool,
     save_png: bool,
     save_pdf: bool,
+    fast_bounds_anchor: bool,
     progress_desc: str,
 ) -> list[Image.Image]:
     frames: list[Image.Image] = []
@@ -132,6 +133,7 @@ def _render_cutting_process_serial(
             save_eps=save_eps,
             save_png=save_png,
             save_pdf=save_pdf,
+            fast_bounds_anchor=fast_bounds_anchor,
         )
         frames.append(frame)
 
@@ -149,6 +151,7 @@ def _render_cutting_process_ray(
     save_eps: bool,
     save_png: bool,
     save_pdf: bool,
+    fast_bounds_anchor: bool,
     progress_desc: str,
 ) -> list[Image.Image]:
     try:
@@ -192,6 +195,7 @@ def _render_cutting_process_ray(
                     save_eps=save_eps,
                     save_png=save_png,
                     save_pdf=save_pdf,
+                    fast_bounds_anchor=fast_bounds_anchor,
                 )
                 for k in range(start, end)
             ]
@@ -222,6 +226,7 @@ def render_cutting_process_gif(
     gif_duration_ms: int = 500,
     mp4_fps: int = 30,
     mp4_quality: int = 8,
+    fast_bounds_anchor: bool = False,
 ) -> dict[str, Path]:
     """Render a cutting process and save requested video formats.
 
@@ -255,6 +260,7 @@ def render_cutting_process_gif(
             save_eps=save_eps,
             save_png=save_png,
             save_pdf=save_pdf,
+            fast_bounds_anchor=fast_bounds_anchor,
             progress_desc=progress_desc,
         )
     else:
@@ -267,6 +273,7 @@ def render_cutting_process_gif(
             save_eps=save_eps,
             save_png=save_png,
             save_pdf=save_pdf,
+            fast_bounds_anchor=fast_bounds_anchor,
             progress_desc=progress_desc,
         )
 
