@@ -4,6 +4,9 @@
 #   cd visualizer_standalone
 #   python3 render_cutting_process.py --config config.yaml --no-ray --no-save-eps --save-png
 #
+# MP4 output for PowerPoint:
+#   python3 render_cutting_process.py --config config.yaml --no-ray --save-mp4 --no-save-gif
+#
 # This visualizer does not load diffusion models. It reads saved rollout data:
 #   root_folder/tags/model_type/episode_x/rollout_data.pickle
 #   root_folder/tags/model_type/episode_x/oracle_obs_cast_z_axis0.png
@@ -74,9 +77,21 @@ renderer:
   # EPS export is fragile in PowerPoint and headless Docker environments.
   save_eps: false
 
-  # PNG is recommended for PowerPoint and general slide editing.
+  # PNG is recommended for slide editing and debugging individual frames.
   save_png: true
 
   # PDF export uses PyVista/VTK vector export. It is often easier to handle than EPS,
   # but may still depend on the local VTK/OpenGL environment.
   save_pdf: false
+
+  # Video outputs.
+  # GIF is kept for backward compatibility.
+  # MP4 is recommended for PowerPoint because playback is smoother and colors are stable.
+  save_gif: true
+  save_mp4: false
+
+  # Timing and quality.
+  # gif_duration_ms is also used as the per-frame semantic duration for MP4.
+  gif_duration_ms: 500
+  mp4_fps: 30
+  mp4_quality: 8
