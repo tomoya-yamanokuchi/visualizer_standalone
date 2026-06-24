@@ -57,6 +57,7 @@ results/
 *.avi
 *.mov
 *.eps
+*.pyc
 screenshot_*.png
 screenshot_*.eps
 screenshot_*.pdf
