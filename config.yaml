@@ -10,6 +10,9 @@
 # Faster MP4 output with opt-in bounds-anchor optimization:
 #   python3 render_cutting_process.py --config config.yaml --no-ray --save-mp4 --no-save-gif --fast-bounds-anchor
 #
+# Rebuild MP4 from already-rendered PNG frames:
+#   python3 render_cutting_process.py --config config.yaml --episode-indices 1 --mp4-from-png --save-mp4 --no-save-gif
+#
 # This visualizer does not load diffusion models. It reads saved rollout data:
 #   root_folder/tags/model_type/episode_x/rollout_data.pickle
 #   root_folder/tags/model_type/episode_x/oracle_obs_cast_z_axis0.png
@@ -98,6 +101,10 @@ renderer:
   gif_duration_ms: 500
   mp4_fps: 30
   mp4_quality: 8
+
+  # If true, skip PyVista rendering and rebuild MP4 from existing
+  # save_subdir/screenshot_*.png frames.
+  mp4_from_png: false
 
   # Optional speed-up.
   # false keeps the historical behavior: one invisible anchor mesh per voxel.
