@@ -87,6 +87,19 @@ python3 render_cutting_process.py \
   --max-episodes 1
 ```
 
+If rendering is too slow, try the opt-in fast bounds-anchor mode:
+
+```bash
+python3 render_cutting_process.py \
+  --config config.yaml \
+  --no-ray \
+  --no-save-eps \
+  --save-mp4 \
+  --no-save-gif \
+  --fast-bounds-anchor \
+  --max-episodes 1
+```
+
 The output MP4 is saved next to the per-episode render directory, for example:
 
 ```text
@@ -141,6 +154,7 @@ renderer:
   gif_duration_ms: 500
   mp4_fps: 30
   mp4_quality: 8
+  fast_bounds_anchor: false
 ```
 
 ### Video output options
@@ -159,6 +173,28 @@ renderer:
 `gif_duration_ms` is used for GIF frame duration and also as the semantic frame duration for MP4. Lower values make the animation faster.
 
 `mp4_quality` is passed to imageio/ffmpeg. Higher is better quality. A value around `8` is a good default.
+
+### Fast bounds-anchor option
+
+`--fast-bounds-anchor` is an opt-in speed-up option for PyVista voxel rendering.
+
+The default historical behavior adds one almost invisible mesh actor for every voxel. This stabilizes camera bounds but can be very slow because a 16 x 16 x 16 grid creates 4096 invisible anchor actors per frame.
+
+With `--fast-bounds-anchor`, visible voxels are drawn with the same logic as before, but those per-voxel invisible anchor actors are skipped. Instead, one invisible bounding box is added to stabilize the camera bounds.
+
+Use this when MP4/GIF rendering is too slow:
+
+```bash
+python3 render_cutting_process.py \
+  --config config.yaml \
+  --no-ray \
+  --save-mp4 \
+  --no-save-gif \
+  --fast-bounds-anchor \
+  --max-episodes 1
+```
+
+For the first run, compare one episode with and without `--fast-bounds-anchor` to confirm that the view is acceptable.
 
 ### CLI overrides
 
@@ -252,7 +288,18 @@ print('saved /tmp/pyvista_test.png')
 PY
 ```
 
-If this fails with a DISPLAY or OpenGL error, fix the rendering environment before running the visualizer.
+If this fails with a DISPLAY or OpenGL error, fix the rendering environment before running the visualizer. In Docker, `xvfb-run` may be needed:
+
+```bash
+xvfb-run -a -s "-screen 0 1280x1024x24" \
+python3 render_cutting_process.py \
+  --config config.yaml \
+  --no-ray \
+  --save-mp4 \
+  --no-save-gif \
+  --fast-bounds-anchor \
+  --max-episodes 1
+```
 
 ## Common troubleshooting
 
@@ -309,6 +356,7 @@ visualizer_standalone/
 2. Sync only the evaluation result folder to the local machine.
 3. Edit `config.yaml` to point to the synced data.
 4. Run `--dry-run`.
-5. Render with `--no-ray --no-save-eps --save-mp4 --no-save-gif` first.
-6. Insert the generated MP4 into PowerPoint.
-7. Adjust timing with `--gif-duration-ms` if the animation is too slow or too fast.
+5. Render with `--no-ray --no-save-eps --save-mp4 --no-save-gif --fast-bounds-anchor` for a quick first pass.
+6. Compare one episode with and without `--fast-bounds-anchor` if exact visual consistency is important.
+7. Insert the generated MP4 into PowerPoint.
+8. Adjust timing with `--gif-duration-ms` if the animation is too slow or too fast.
