@@ -1,6 +1,6 @@
 # visualizer_standalone
 
-Standalone visualizer for rendering 3D cutting-process GIFs from saved rollout results.
+Standalone visualizer for rendering 3D cutting-process GIF/MP4 videos from saved rollout results.
 
 This repository is intended to be separated from the original training/evaluation repository. It does **not** train diffusion models and does **not** load model weights. It only reads saved rollout data and renders the cutting process with PyVista/VTK.
 
@@ -16,8 +16,9 @@ GPU server:
 
 local machine:
   load saved rollout results
-  render 3D voxel cutting process GIFs
-  adjust camera/view/style for paper figures
+  render 3D voxel cutting process videos
+  save GIF and/or MP4
+  adjust camera/view/style for paper figures and slides
 ```
 
 This separation is useful because PyVista/VTK rendering often requires a working display or OpenGL context, while headless SSH/Docker GPU servers may not provide one.
@@ -60,9 +61,9 @@ Create and activate a Python environment, then install dependencies:
 pip install -r requirements.txt
 ```
 
-Minimal dependencies are PyVista/VTK, NumPy, Pillow, SciPy, PyYAML, and tqdm.
+Minimal dependencies are PyVista/VTK, NumPy, Pillow, SciPy, PyYAML, tqdm, and imageio/ffmpeg for MP4 export.
 
-Ray is optional and disabled by default. Use serial rendering first.
+Ray is optional and can be disabled with `--no-ray`. Use serial rendering first when debugging.
 
 ## Quick start
 
@@ -74,23 +75,34 @@ Then run a dry run first:
 python3 render_cutting_process.py --config config.yaml --dry-run
 ```
 
-If the target folder is correct, render one episode:
+Render one episode and save MP4 for PowerPoint:
 
 ```bash
 python3 render_cutting_process.py \
   --config config.yaml \
   --no-ray \
   --no-save-eps \
+  --save-mp4 \
+  --no-save-gif \
   --max-episodes 1
 ```
 
-The output GIF is saved next to the per-episode render directory, for example:
+The output MP4 is saved next to the per-episode render directory, for example:
 
 ```text
-Object_A/episode_0/cutting_process_dim_16_no_axis_w_cutting_plane3.gif
+Object_A/episode_0/cutting_process_dim_16_no_axis_w_cutting_plane3.mp4
 ```
 
-or, depending on `save_subdir`, one level above the frame-output directory.
+GIF output is still supported for backward compatibility:
+
+```bash
+python3 render_cutting_process.py \
+  --config config.yaml \
+  --no-ray \
+  --save-gif \
+  --no-save-mp4 \
+  --max-episodes 1
+```
 
 ## Configuration
 
@@ -122,9 +134,33 @@ renderer:
   use_ray: false
   max_in_flight: 1
   save_eps: false
+  save_png: false
+  save_pdf: false
+  save_gif: true
+  save_mp4: false
+  gif_duration_ms: 500
+  mp4_fps: 30
+  mp4_quality: 8
 ```
 
-### Selection options
+### Video output options
+
+`save_gif` and `save_mp4` can be enabled independently.
+
+```yaml
+renderer:
+  save_gif: false
+  save_mp4: true
+  gif_duration_ms: 300
+  mp4_fps: 30
+  mp4_quality: 8
+```
+
+`gif_duration_ms` is used for GIF frame duration and also as the semantic frame duration for MP4. Lower values make the animation faster.
+
+`mp4_quality` is passed to imageio/ffmpeg. Higher is better quality. A value around `8` is a good default.
+
+### CLI overrides
 
 Render only specific model-type folders:
 
@@ -145,6 +181,29 @@ python3 render_cutting_process.py \
   --config config.yaml \
   --root-folder /path/to/eval/root \
   --tags epsilon_greedy_00
+```
+
+Enable MP4 from CLI without editing config:
+
+```bash
+python3 render_cutting_process.py \
+  --config config.yaml \
+  --no-ray \
+  --save-mp4 \
+  --no-save-gif \
+  --gif-duration-ms 300 \
+  --mp4-fps 30 \
+  --mp4-quality 8
+```
+
+Save both GIF and MP4:
+
+```bash
+python3 render_cutting_process.py \
+  --config config.yaml \
+  --no-ray \
+  --save-gif \
+  --save-mp4
 ```
 
 ## Rendering progress
@@ -212,6 +271,20 @@ python3 render_cutting_process.py --config config.yaml --dry-run
 
 or ensure the current directory contains the Python files.
 
+### MP4 export fails because ffmpeg is missing
+
+Install the updated requirements:
+
+```bash
+pip install -r requirements.txt
+```
+
+or explicitly install imageio with ffmpeg support:
+
+```bash
+pip install 'imageio[ffmpeg]'
+```
+
 ### Python 3.8 compatibility
 
 This project is intended to run on Python 3.8+ and avoids Python 3.9-only type alias syntax in runtime-critical files.
@@ -221,7 +294,7 @@ This project is intended to run on Python 3.8+ and avoids Python 3.9-only type a
 ```text
 visualizer_standalone/
   render_cutting_process.py          # CLI entry point
-  voxel_renderer.py                  # GIF rendering orchestration
+  voxel_renderer.py                  # rendering orchestration and GIF/MP4 export
   cutting_process_render_worker.py   # PyVista rendering for one frame
   voxel_handlers_min.py              # minimal 2D map <-> 3D voxel utilities
   action_table.py                    # standalone cutting action table builder
@@ -236,5 +309,6 @@ visualizer_standalone/
 2. Sync only the evaluation result folder to the local machine.
 3. Edit `config.yaml` to point to the synced data.
 4. Run `--dry-run`.
-5. Render with `--no-ray --no-save-eps` first.
-6. Adjust camera/style locally for paper figures.
+5. Render with `--no-ray --no-save-eps --save-mp4 --no-save-gif` first.
+6. Insert the generated MP4 into PowerPoint.
+7. Adjust timing with `--gif-duration-ms` if the animation is too slow or too fast.
