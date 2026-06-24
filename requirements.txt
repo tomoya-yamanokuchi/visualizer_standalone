@@ -3,6 +3,7 @@
 # Notes:
 # - PyVista depends on VTK for rendering.
 # - Ray is intentionally optional; install it only if you want --use-ray.
+# - imageio[ffmpeg] is used only for MP4 export.
 # - On Linux Docker, PyVista/VTK may require DISPLAY/X11 or a working off-screen
 #   rendering backend. The recommended first test is --no-ray --no-save-eps.
 
@@ -13,6 +14,7 @@ scipy>=1.9
 tqdm>=4.64
 pyvista>=0.40
 vtk>=9.2
+imageio[ffmpeg]>=2.31
 
 # Optional parallel rendering:
 ray>=2.0
