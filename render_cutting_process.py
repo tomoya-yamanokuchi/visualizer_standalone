@@ -53,6 +53,11 @@ DEFAULT_CONFIG = {
         "save_eps": False,
         "save_png": False,
         "save_pdf": False,
+        "save_gif": True,
+        "save_mp4": False,
+        "gif_duration_ms": 500,
+        "mp4_fps": 30,
+        "mp4_quality": 8,
     },
 }
 
@@ -300,6 +305,11 @@ def render_episode(
         save_eps=bool(renderer_cfg.get("save_eps", False)),
         save_png=bool(renderer_cfg.get("save_png", False)),
         save_pdf=bool(renderer_cfg.get("save_pdf", False)),
+        save_gif=bool(renderer_cfg.get("save_gif", True)),
+        save_mp4=bool(renderer_cfg.get("save_mp4", False)),
+        gif_duration_ms=int(renderer_cfg.get("gif_duration_ms", 500)),
+        mp4_fps=int(renderer_cfg.get("mp4_fps", 30)),
+        mp4_quality=int(renderer_cfg.get("mp4_quality", 8)),
     )
 
     elapsed = perf_counter() - start_time
@@ -373,13 +383,23 @@ def apply_cli_overrides(cfg: dict[str, Any], args: argparse.Namespace) -> dict[s
         renderer_cfg["save_png"] = args.save_png
     if args.save_pdf is not None:
         renderer_cfg["save_pdf"] = args.save_pdf
+    if args.save_gif is not None:
+        renderer_cfg["save_gif"] = args.save_gif
+    if args.save_mp4 is not None:
+        renderer_cfg["save_mp4"] = args.save_mp4
+    if args.gif_duration_ms is not None:
+        renderer_cfg["gif_duration_ms"] = args.gif_duration_ms
+    if args.mp4_fps is not None:
+        renderer_cfg["mp4_fps"] = args.mp4_fps
+    if args.mp4_quality is not None:
+        renderer_cfg["mp4_quality"] = args.mp4_quality
 
     return cfg
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Render 3D cutting-process GIFs from saved rollout_data.pickle files.",
+        description="Render 3D cutting-process GIF/MP4 videos from saved rollout_data.pickle files.",
     )
     parser.add_argument("--config", type=Path, default=Path("config.yaml"))
     parser.add_argument("--root-folder", type=str, default=None)
@@ -391,6 +411,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dim-3d", type=int, default=None)
     parser.add_argument("--max-in-flight", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true", help="Print resolved targets without rendering.")
+    parser.add_argument("--gif-duration-ms", type=int, default=None, help="Duration per semantic frame for GIF/MP4 timing.")
+    parser.add_argument("--mp4-fps", type=int, default=None, help="Output FPS for MP4 export.")
+    parser.add_argument("--mp4-quality", type=int, default=None, help="imageio/ffmpeg MP4 quality, 0-10. Higher is better.")
 
     ray_group = parser.add_mutually_exclusive_group()
     ray_group.add_argument("--use-ray", dest="use_ray", action="store_true")
@@ -411,6 +434,16 @@ def parse_args() -> argparse.Namespace:
     pdf_group.add_argument("--save-pdf", dest="save_pdf", action="store_true")
     pdf_group.add_argument("--no-save-pdf", dest="save_pdf", action="store_false")
     parser.set_defaults(save_pdf=None)
+
+    gif_group = parser.add_mutually_exclusive_group()
+    gif_group.add_argument("--save-gif", dest="save_gif", action="store_true")
+    gif_group.add_argument("--no-save-gif", dest="save_gif", action="store_false")
+    parser.set_defaults(save_gif=None)
+
+    mp4_group = parser.add_mutually_exclusive_group()
+    mp4_group.add_argument("--save-mp4", dest="save_mp4", action="store_true")
+    mp4_group.add_argument("--no-save-mp4", dest="save_mp4", action="store_false")
+    parser.set_defaults(save_mp4=None)
 
     interleave_group = parser.add_mutually_exclusive_group()
     interleave_group.add_argument("--paper-frame-interleave", dest="paper_frame_interleave", action="store_true")
