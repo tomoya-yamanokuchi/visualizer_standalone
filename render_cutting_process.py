@@ -58,6 +58,7 @@ DEFAULT_CONFIG = {
         "gif_duration_ms": 500,
         "mp4_fps": 30,
         "mp4_quality": 8,
+        "fast_bounds_anchor": False,
     },
 }
 
@@ -310,6 +311,7 @@ def render_episode(
         gif_duration_ms=int(renderer_cfg.get("gif_duration_ms", 500)),
         mp4_fps=int(renderer_cfg.get("mp4_fps", 30)),
         mp4_quality=int(renderer_cfg.get("mp4_quality", 8)),
+        fast_bounds_anchor=bool(renderer_cfg.get("fast_bounds_anchor", False)),
     )
 
     elapsed = perf_counter() - start_time
@@ -393,6 +395,8 @@ def apply_cli_overrides(cfg: dict[str, Any], args: argparse.Namespace) -> dict[s
         renderer_cfg["mp4_fps"] = args.mp4_fps
     if args.mp4_quality is not None:
         renderer_cfg["mp4_quality"] = args.mp4_quality
+    if args.fast_bounds_anchor is not None:
+        renderer_cfg["fast_bounds_anchor"] = args.fast_bounds_anchor
 
     return cfg
 
@@ -444,6 +448,16 @@ def parse_args() -> argparse.Namespace:
     mp4_group.add_argument("--save-mp4", dest="save_mp4", action="store_true")
     mp4_group.add_argument("--no-save-mp4", dest="save_mp4", action="store_false")
     parser.set_defaults(save_mp4=None)
+
+    fast_group = parser.add_mutually_exclusive_group()
+    fast_group.add_argument(
+        "--fast-bounds-anchor",
+        dest="fast_bounds_anchor",
+        action="store_true",
+        help="Use one invisible bounding box instead of per-voxel invisible anchor meshes.",
+    )
+    fast_group.add_argument("--no-fast-bounds-anchor", dest="fast_bounds_anchor", action="store_false")
+    parser.set_defaults(fast_bounds_anchor=None)
 
     interleave_group = parser.add_mutually_exclusive_group()
     interleave_group.add_argument("--paper-frame-interleave", dest="paper_frame_interleave", action="store_true")
